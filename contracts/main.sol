@@ -1,7 +1,39 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+
+contract CommunityRespectToken is ERC1155, Ownable {
+    constructor(address initialOwner) ERC1155("") Ownable(initialOwner) {
+        // Additional initialization if needed
+    }
+
+    function mint(address account, uint256 id, uint256 amount, bytes memory data) public onlyOwner {
+        _mint(account, id, amount, data);
+    }
+
+    function burn(address account, uint256 id, uint256 amount) public onlyOwner {
+        _burn(account, id, amount);
+    }
+
+    // Disable transfers
+    function safeTransferFrom(address, address, uint256, uint256, bytes memory) public pure override {
+        revert("Transfers are not allowed");
+    }
+
+    function safeBatchTransferFrom(address, address, uint256[] memory, uint256[] memory, bytes memory) public pure override {
+        revert("Transfers are not allowed");
+    }
+}
+
 contract CommunityGovernance {
+
+ constructor() {
+        respectToken = new CommunityRespectToken(address(this));
+    }
+
     struct CommunityData {
         uint256 communityId;
         uint256 totalRespect;
@@ -23,16 +55,103 @@ contract CommunityGovernance {
         string imageUrl;
         address creator;
         uint256 memberCount;
+        address[] members;
     }
 
     mapping(address => UserProfile) public users;
     mapping(uint256 => Community) public communities;
     uint256 public nextCommunityId = 1;
 
+    CommunityRespectToken public respectToken;
+
     event ProfileCreated(address indexed user, string username, bool isNewProfile);
     event CommunityJoined(address indexed user, uint256 indexed communityId, bool isApproved);
     event UserApproved(address indexed user, uint256 indexed communityId, address indexed approver);
     event CommunityCreated(uint256 indexed communityId, string name, address indexed creator);
+
+
+    function createCommunity(string memory _name, string memory _description, string memory _imageUrl) public returns (uint256) {
+        require(bytes(users[msg.sender].username).length > 0, "Profile must exist to create community");
+
+        uint256 newCommunityId = nextCommunityId;
+        Community storage newCommunity = communities[newCommunityId];
+        
+        newCommunity.name = _name;
+        newCommunity.description = _description;
+        newCommunity.imageUrl = _imageUrl;
+        newCommunity.creator = msg.sender;
+        newCommunity.memberCount = 1;
+        newCommunity.members.push(msg.sender);
+
+        nextCommunityId++;
+
+        CommunityData storage creatorCommunityData = users[msg.sender].communityData[newCommunityId];
+        creatorCommunityData.communityId = newCommunityId;
+        creatorCommunityData.totalRespect = 0;
+        creatorCommunityData.averageRespect = 0;
+        creatorCommunityData.isApproved = true;
+
+        emit CommunityCreated(newCommunityId, _name, msg.sender);
+
+        return newCommunityId;
+    }
+
+    function approveUser(address _user, uint256 _communityId) public {
+        require(bytes(users[msg.sender].username).length > 0, "Approver profile does not exist");
+        require(bytes(users[_user].username).length > 0, "User profile to approve does not exist");
+        require(communities[_communityId].memberCount > 5, "Approval not required for first 5 members");
+
+        CommunityData storage approverData = users[msg.sender].communityData[_communityId];
+        require(approverData.communityId != 0, "Approver not part of this community");
+        require(approverData.isApproved, "Approver must be an approved member of the community");
+
+        CommunityData storage userData = users[_user].communityData[_communityId];
+        require(userData.communityId != 0, "User not part of this community");
+        require(!userData.isApproved, "User already approved");
+        require(userData.approvers.length < 2, "User already has 2 approvals");
+
+        for (uint i = 0; i < userData.approvers.length; i++) {
+            require(userData.approvers[i] != msg.sender, "Approver has already approved this user");
+        }
+
+        userData.approvers.push(msg.sender);
+
+        if (userData.approvers.length == 2) {
+            userData.isApproved = true;
+            userData.totalRespect = 0;
+            userData.averageRespect = 0;
+        }
+
+        emit UserApproved(_user, _communityId, msg.sender);
+    }
+
+    function getCommunityMembers(uint256 _communityId) public view returns (
+        address[] memory memberAddresses,
+        string[] memory memberUsernames,
+        uint256[] memory totalRespects,
+        uint256[] memory averageRespects
+    ) {
+        require(_communityId > 0 && _communityId < nextCommunityId, "Invalid community ID");
+        
+        Community storage community = communities[_communityId];
+        uint256 memberCount = community.memberCount;
+        
+        memberAddresses = new address[](memberCount);
+        memberUsernames = new string[](memberCount);
+        totalRespects = new uint256[](memberCount);
+        averageRespects = new uint256[](memberCount);
+        
+        for (uint256 i = 0; i < memberCount; i++) {
+            address memberAddress = community.members[i];
+            UserProfile storage user = users[memberAddress];
+            CommunityData storage communityData = user.communityData[_communityId];
+            
+            memberAddresses[i] = memberAddress;
+            memberUsernames[i] = user.username;
+            totalRespects[i] = communityData.totalRespect;
+            averageRespects[i] = communityData.averageRespect;
+        }
+    }
 
     function createProfileAndJoinCommunity(
         string memory _username,
@@ -63,74 +182,11 @@ contract CommunityGovernance {
         newCommunityData.isApproved = isApproved;
 
         community.memberCount++;
+        community.members.push(msg.sender);
 
         emit ProfileCreated(msg.sender, _username, isNewProfile);
         emit CommunityJoined(msg.sender, _communityId, isApproved);
     }
-
-function approveUser(address _user, uint256 _communityId) public {
-
-    require(bytes(users[msg.sender].username).length > 0, "Approver profile does not exist");
-    require(bytes(users[_user].username).length > 0, "User profile to approve does not exist");
-    require(communities[_communityId].memberCount > 5, "Approval not required for first 5 members");
-
-    CommunityData storage approverData = users[msg.sender].communityData[_communityId];
-    require(approverData.communityId != 0, "Approver not part of this community");
-    require(approverData.isApproved, "Approver must be an approved member of the community");
-
-    CommunityData storage userData = users[_user].communityData[_communityId];
-    require(userData.communityId != 0, "User not part of this community");
-    require(!userData.isApproved, "User already approved");
-    require(userData.approvers.length < 2, "User already has 2 approvals");
-
-    for (uint i = 0; i < userData.approvers.length; i++) {
-        require(userData.approvers[i] != msg.sender, "Approver has already approved this user");
-    }
-
-    userData.approvers.push(msg.sender);
-
-    if (userData.approvers.length == 2) {
-        userData.isApproved = true;
-    }
-
-    emit UserApproved(_user, _communityId, msg.sender);
-}
-
-function createCommunity(string memory _name, string memory _description, string memory _imageUrl) public returns (uint256) {
-    // Check if user profile exists, if not, create one
-    if (bytes(users[msg.sender].username).length == 0) {
-        UserProfile storage newUser = users[msg.sender];
-        newUser.username = "First";
-        newUser.description = "Creator of the game";
-        newUser.profilePicUrl = ""; // Empty profile picture
-    }
-
-    // Create new community
-    uint256 newCommunityId = nextCommunityId;
-    Community storage newCommunity = communities[newCommunityId];
-    
-    newCommunity.name = _name;
-    newCommunity.description = _description;
-    newCommunity.imageUrl = _imageUrl;
-    newCommunity.creator = msg.sender;
-    newCommunity.memberCount = 1;
-
-    nextCommunityId++;
-
-    // Add creator to the community
-    CommunityData storage creatorCommunityData = users[msg.sender].communityData[newCommunityId];
-    creatorCommunityData.communityId = newCommunityId;
-    creatorCommunityData.totalRespect = 0;
-    creatorCommunityData.averageRespect = 0;
-    creatorCommunityData.isApproved = true; // Creator is automatically approved
-
-    emit CommunityCreated(newCommunityId, _name, msg.sender);
-
-    return newCommunityId;
-}
-
-
-
 
     function getUserProfile(address _user) public view returns (string memory, string memory, string memory) {
         require(bytes(users[_user].username).length > 0, "Profile does not exist");
