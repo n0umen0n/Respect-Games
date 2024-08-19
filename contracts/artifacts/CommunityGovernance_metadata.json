@@ -255,6 +255,19 @@
 			{
 				"inputs": [
 					{
+						"internalType": "address[]",
+						"name": "participants",
+						"type": "address[]"
+					}
+				],
+				"name": "createGroups",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
 						"internalType": "string",
 						"name": "_username",
 						"type": "string"
@@ -317,45 +330,6 @@
 			{
 				"inputs": [
 					{
-						"internalType": "uint256",
-						"name": "_communityId",
-						"type": "uint256"
-					}
-				],
-				"name": "getCommunityProfile",
-				"outputs": [
-					{
-						"internalType": "string",
-						"name": "",
-						"type": "string"
-					},
-					{
-						"internalType": "string",
-						"name": "",
-						"type": "string"
-					},
-					{
-						"internalType": "string",
-						"name": "",
-						"type": "string"
-					},
-					{
-						"internalType": "address",
-						"name": "",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
 						"internalType": "address",
 						"name": "_user",
 						"type": "address"
@@ -393,64 +367,14 @@
 				"type": "function"
 			},
 			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "_user",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_communityId",
-						"type": "uint256"
-					}
-				],
-				"name": "getUserCommunityData",
+				"inputs": [],
+				"name": "getDetailedGroupInfo",
 				"outputs": [
 					{
-						"internalType": "uint256",
+						"internalType": "uint256[]",
 						"name": "",
-						"type": "uint256"
+						"type": "uint256[]"
 					},
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					},
-					{
-						"internalType": "bool",
-						"name": "",
-						"type": "bool"
-					},
-					{
-						"internalType": "address[]",
-						"name": "",
-						"type": "address[]"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "_user",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_communityId",
-						"type": "uint256"
-					}
-				],
-				"name": "getUserContributedWeeks",
-				"outputs": [
 					{
 						"internalType": "uint256[]",
 						"name": "",
@@ -461,29 +385,64 @@
 				"type": "function"
 			},
 			{
+				"inputs": [],
+				"name": "getGroupCount",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "groupId",
+						"type": "uint256"
+					}
+				],
+				"name": "getGroupMembers",
+				"outputs": [
+					{
+						"internalType": "address[]",
+						"name": "",
+						"type": "address[]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "getLastRoomSizes",
+				"outputs": [
+					{
+						"internalType": "uint8[]",
+						"name": "",
+						"type": "uint8[]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
 				"inputs": [
 					{
 						"internalType": "address",
-						"name": "_user",
+						"name": "",
 						"type": "address"
 					}
 				],
-				"name": "getUserProfile",
+				"name": "hasContributed",
 				"outputs": [
 					{
-						"internalType": "string",
+						"internalType": "bool",
 						"name": "",
-						"type": "string"
-					},
-					{
-						"internalType": "string",
-						"name": "",
-						"type": "string"
-					},
-					{
-						"internalType": "string",
-						"name": "",
-						"type": "string"
+						"type": "bool"
 					}
 				],
 				"stateMutability": "view",
@@ -747,11 +706,11 @@
 			]
 		},
 		"contracts/main.sol": {
-			"keccak256": "0x37de2bf5cede4fc9781a888073834204f792f434f353abdc0274473eec64a75e",
+			"keccak256": "0xc1c29edf45aa4a503607f7d13e7b6e7c0d44ad3fdce69ef9d0c318831f059eee",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://e7d564c6100cc8dbcd3d7fdceda7c9e219fb27359957bb2203a35c215533de01",
-				"dweb:/ipfs/QmPfWru8pmLAtkyQqhXXoT25pQDfiTfaMnUmjqZFgPkxx5"
+				"bzz-raw://0bd14f5164b0d8e733917e8b5e6825c7c523db920ff5434f7e8e22a6a3dd2437",
+				"dweb:/ipfs/QmZd2rNeYnMsxFkwndngunw5oSa7SHMxWSstyVujEMgE8z"
 			]
 		},
 		"hardhat/console.sol": {

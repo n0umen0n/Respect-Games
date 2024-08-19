@@ -684,7 +684,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			"contracts/main.sol": "CommunityRespectToken"
+			"contracts/profilesandapprovals.sol": "CommunityRespectToken"
 		},
 		"evmVersion": "cancun",
 		"libraries": {},
@@ -810,12 +810,12 @@
 				"dweb:/ipfs/QmVBEei6aTnvYNZp2CHYVNKyZS4q1KkjANfY39WVXZXVoT"
 			]
 		},
-		"contracts/main.sol": {
-			"keccak256": "0x37de2bf5cede4fc9781a888073834204f792f434f353abdc0274473eec64a75e",
+		"contracts/profilesandapprovals.sol": {
+			"keccak256": "0x32e7ae57ea390d3a90caefbf703201a53c6ebc247d3601e4e655ea3618ae30a2",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://e7d564c6100cc8dbcd3d7fdceda7c9e219fb27359957bb2203a35c215533de01",
-				"dweb:/ipfs/QmPfWru8pmLAtkyQqhXXoT25pQDfiTfaMnUmjqZFgPkxx5"
+				"bzz-raw://617ef3db7c3e8563c8445bda99a5a54c9c6f15d2f3a013e76687675ce4b957e3",
+				"dweb:/ipfs/QmazZHkoFzCFM2nZzte53wunjBSUxkt8ve7w5Z1BFo6evL"
 			]
 		},
 		"hardhat/console.sol": {
