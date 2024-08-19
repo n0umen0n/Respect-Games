@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 
 interface ICommunityGovernanceProfiles {
@@ -13,6 +14,8 @@ interface ICommunityGovernanceProfiles {
  * @custom:dev-run-script /script/twotogether.js
 */
 contract CommunityGovernanceContributions {
+    using SafeMath for uint256;
+
     ICommunityGovernanceProfiles public profilesContract;
 
     struct Contribution {
@@ -42,21 +45,147 @@ contract CommunityGovernanceContributions {
         address[] members;
     }
 
-    struct MemberContributions {
-        Contribution[] contributions;
+    struct Ranking {
+        address[] rankedAddresses;
+    }
+
+    struct ConsensusRanking {
+        address[] rankedAddresses;
+        uint256 timestamp;
     }
 
     uint8[] private lastRoomSizes;
     Group[] private groups;
-    mapping(uint256 => mapping(address => MemberContributions)) private groupContributions;
-    mapping(address => bool) public hasContributed;
+    mapping(uint256 => mapping(uint256 => mapping(uint256 => mapping(address => Ranking)))) private rankings;
+    mapping(uint256 => mapping(uint256 => mapping(uint256 => ConsensusRanking))) private consensusRankings;
     mapping(address => mapping(uint256 => UserContributions)) public userContributions;
+    mapping(uint256 => mapping(uint256 => address[])) private weeklyContributors;
 
     event ContributionSubmitted(address indexed user, uint256 indexed communityId, uint256 weekNumber, uint256 contributionIndex);
+    event GroupsCreated(uint256 indexed communityId, uint256 weekNumber, uint256 groupCount);
+    event RankingSubmitted(uint256 indexed communityId, uint256 weekNumber, uint256 groupId, address indexed submitter);
+    event ConsensusReached(uint256 indexed communityId, uint256 weekNumber, uint256 groupId, address[] consensusRanking);
 
     constructor(address _profilesContractAddress) {
         profilesContract = ICommunityGovernanceProfiles(_profilesContractAddress);
     }
+
+
+    function submitRanking(uint256 _communityId, uint256 _weekNumber, uint256 _groupId, address[] memory _ranking) public {
+        require(_ranking.length > 0 && _ranking.length <= 6, "Ranking must have 1 to 6 members");
+        require(isPartOfGroup(_communityId, _weekNumber, _groupId, msg.sender), "Sender not part of the group");
+        require(rankings[_communityId][_weekNumber][_groupId][msg.sender].rankedAddresses.length == 0, "Ranking already submitted");
+
+        bool senderIncluded = false;
+        for (uint256 i = 0; i < _ranking.length; i++) {
+            require(isPartOfGroup(_communityId, _weekNumber, _groupId, _ranking[i]), "Invalid address in ranking");
+            if (_ranking[i] == msg.sender) {
+                senderIncluded = true;
+            }
+        }
+        require(senderIncluded, "Sender must be included in the ranking");
+
+        rankings[_communityId][_weekNumber][_groupId][msg.sender] = Ranking(_ranking);
+        emit RankingSubmitted(_communityId, _weekNumber, _groupId, msg.sender);
+    }
+
+    function determineConsensus(uint256 _communityId, uint256 _weekNumber, uint256 _groupId) public {
+        Group storage group = groups[_groupId];
+        require(group.members.length > 0, "Group does not exist");
+
+        uint256 groupSize = group.members.length;
+        address[] memory members = new address[](groupSize);
+        uint256[] memory transientScores = new uint256[](groupSize);
+
+        for (uint256 i = 0; i < groupSize; i++) {
+            members[i] = group.members[i];
+            transientScores[i] = calculateTransientScore(_communityId, _weekNumber, _groupId, members[i]);
+        }
+
+        // Sort members based on transient scores (descending order)
+        for (uint256 i = 0; i < groupSize - 1; i++) {
+            for (uint256 j = i + 1; j < groupSize; j++) {
+                if (transientScores[i] < transientScores[j]) {
+                    (transientScores[i], transientScores[j]) = (transientScores[j], transientScores[i]);
+                    (members[i], members[j]) = (members[j], members[i]);
+                }
+            }
+        }
+
+        consensusRankings[_communityId][_weekNumber][_groupId] = ConsensusRanking(members, block.timestamp);
+        emit ConsensusReached(_communityId, _weekNumber, _groupId, members);
+    }
+
+    function calculateTransientScore(uint256 _communityId, uint256 _weekNumber, uint256 _groupId, address _member) private view returns (uint256) {
+        uint256 groupSize = groups[_groupId].members.length;
+        uint256[] memory individualRankings = new uint256[](groupSize);
+        uint256 rankingCount = 0;
+
+        for (uint256 i = 0; i < groupSize; i++) {
+            address ranker = groups[_groupId].members[i];
+            Ranking storage ranking = rankings[_communityId][_weekNumber][_groupId][ranker];
+            
+            if (ranking.rankedAddresses.length > 0) {
+                for (uint256 j = 0; j < ranking.rankedAddresses.length; j++) {
+                    if (ranking.rankedAddresses[j] == _member) {
+                        individualRankings[rankingCount] = j + 1;
+                        rankingCount++;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (rankingCount == 0) {
+            return 0;
+        }
+
+        uint256 averageRanking = 0;
+        for (uint256 i = 0; i < rankingCount; i++) {
+            averageRanking = averageRanking.add(individualRankings[i]);
+        }
+        averageRanking = averageRanking.div(rankingCount);
+
+        uint256 variance = calculateVariance(individualRankings, averageRanking, rankingCount);
+        uint256 maxVariance = calculateMaxVariance(groupSize);
+        uint256 consensusTerm = uint256(1e18).sub(variance.mul(1e18).div(maxVariance));
+
+        return averageRanking.mul(consensusTerm).div(1e18);
+    }
+
+  function calculateVariance(uint256[] memory _rankings, uint256 _mean, uint256 _count) private pure returns (uint256) {
+    if (_count <= 1) {
+        return 0;
+    }
+
+    uint256 sumSquaredDiff = 0;
+    for (uint256 i = 0; i < _count; i++) {
+        int256 diff = int256(_rankings[i]) - int256(_mean);
+        sumSquaredDiff = sumSquaredDiff + uint256(diff * diff);
+    }
+
+    return sumSquaredDiff / (_count - 1);
+}
+
+function calculateMaxVariance(uint256 groupSize) private pure returns (uint256) {
+    uint256 sum = 0;
+    for (uint256 x = 1; x < groupSize; x++) {
+        sum = sum + (x * (x + 1) / 2);
+    }
+    return groupSize * sum / (groupSize - 1);
+}
+
+function isPartOfGroup(uint256 /* _communityId */, uint256 /* _weekNumber */, uint256 _groupId, address _member) private view returns (bool) {
+    Group storage group = groups[_groupId];
+    for (uint256 i = 0; i < group.members.length; i++) {
+        if (group.members[i] == _member) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 
     function submitContributions(
         uint256 _communityId,

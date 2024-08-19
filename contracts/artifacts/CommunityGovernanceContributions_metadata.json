@@ -21,6 +21,37 @@
 				"inputs": [
 					{
 						"indexed": true,
+						"internalType": "uint256",
+						"name": "communityId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "weekNumber",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "groupId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address[]",
+						"name": "consensusRanking",
+						"type": "address[]"
+					}
+				],
+				"name": "ConsensusReached",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
 						"internalType": "address",
 						"name": "user",
 						"type": "address"
@@ -73,6 +104,37 @@
 				"type": "event"
 			},
 			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "communityId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "weekNumber",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "groupId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "submitter",
+						"type": "address"
+					}
+				],
+				"name": "RankingSubmitted",
+				"type": "event"
+			},
+			{
 				"inputs": [
 					{
 						"internalType": "uint256",
@@ -83,6 +145,63 @@
 				"name": "createGroupsForCurrentWeek",
 				"outputs": [],
 				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_communityId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_weekNumber",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_groupId",
+						"type": "uint256"
+					}
+				],
+				"name": "determineConsensus",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_communityId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_weekNumber",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_groupId",
+						"type": "uint256"
+					}
+				],
+				"name": "getConsensusRanking",
+				"outputs": [
+					{
+						"internalType": "address[]",
+						"name": "rankedAddresses",
+						"type": "address[]"
+					},
+					{
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -130,12 +249,12 @@
 				"outputs": [
 					{
 						"internalType": "uint256[]",
-						"name": "",
+						"name": "groupIds",
 						"type": "uint256[]"
 					},
 					{
 						"internalType": "uint256[]",
-						"name": "",
+						"name": "groupSizes",
 						"type": "uint256[]"
 					}
 				],
@@ -190,6 +309,74 @@
 			{
 				"inputs": [
 					{
+						"internalType": "uint256",
+						"name": "_communityId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_weekNumber",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_groupId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					}
+				],
+				"name": "getRanking",
+				"outputs": [
+					{
+						"internalType": "address[]",
+						"name": "",
+						"type": "address[]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_communityId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_weekNumber",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_groupId",
+						"type": "uint256"
+					}
+				],
+				"name": "getTransientScores",
+				"outputs": [
+					{
+						"internalType": "address[]",
+						"name": "members",
+						"type": "address[]"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "scores",
+						"type": "uint256[]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
 						"internalType": "address",
 						"name": "_user",
 						"type": "address"
@@ -236,25 +423,6 @@
 				"type": "function"
 			},
 			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"name": "hasContributed",
-				"outputs": [
-					{
-						"internalType": "bool",
-						"name": "",
-						"type": "bool"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
 				"inputs": [],
 				"name": "profilesContract",
 				"outputs": [
@@ -292,12 +460,40 @@
 								"type": "string[]"
 							}
 						],
-						"internalType": "struct CommunityGovernanceContributions.ContributionInput[]",
+						"internalType": "struct CommunityGovernanceContributions.Contribution[]",
 						"name": "_contributions",
 						"type": "tuple[]"
 					}
 				],
 				"name": "submitContributions",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_communityId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_weekNumber",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_groupId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address[]",
+						"name": "_ranking",
+						"type": "address[]"
+					}
+				],
+				"name": "submitRanking",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -358,11 +554,11 @@
 	},
 	"sources": {
 		"contracts/contributionsandgroups.sol": {
-			"keccak256": "0xc175fea3b80b95359cd1621d3b389a515c376eac0c0216a08658284cd70c70c7",
+			"keccak256": "0x75617b0851c641c2644b225c46d77f28cb5bee0ee282e54c24a23c915328a155",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://25f6bdca193658ead3098886a83ddb071fa61af7b113673083ced56eb3dd428e",
-				"dweb:/ipfs/QmUNqQpqD3cvQC1XUricGCNxTjAFQCiMraRyz4cqRkNFUM"
+				"bzz-raw://2696a49a7748dafb55e6da0d555ec7c010d6128eecc902ef58acbfa35d3854e7",
+				"dweb:/ipfs/QmZ2oXS1ikbBtnwxR7ZMePiUfUWErZwekmjMBdR4U9Kbva"
 			]
 		}
 	},

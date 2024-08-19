@@ -202,10 +202,66 @@
       await createAndLogGroups(communityId);
     }
 
-    console.log('Script execution completed successfully.');
+    // Function to submit rankings
+    async function submitRankings(communityId, weekNumber, groupId) {
+      console.log(`\nSubmitting rankings for community ${communityId}, week ${weekNumber}, group ${groupId}`);
+      const groupMembers = await communityGovernanceContributions.methods.getGroupMembers(groupId).call();
 
-  } catch (e) {
-    console.error('Error:', e.message);
-    console.error('Error stack:', e.stack);
-  }
+      for (let i = 0; i < groupMembers.length; i++) {
+        const ranker = groupMembers[i];
+        if (ranker === deployerAccount) continue; // Skip the deployer account
+
+        // Create a random ranking of group members (excluding the ranker)
+        let ranking = groupMembers.filter(member => member !== ranker);
+        ranking.sort(() => Math.random() - 0.5);
+        ranking.splice(Math.floor(Math.random() * ranking.length), 0, ranker); // Insert ranker at a random position
+
+        try {
+          await communityGovernanceContributions.methods.submitRanking(communityId, weekNumber, groupId, ranking)
+            .send({ from: ranker, gas: 3000000 });
+          console.log(`Ranking submitted by ${ranker}:`, ranking);
+        } catch (error) {
+          console.log(`Failed to submit ranking for ${ranker}. Reason: ${error.message}`);
+        }
+      }
+    }
+
+  async function determineGroupConsensus(communityId, weekNumber, groupId) {
+  console.log(`\nDetermining consensus for community ${communityId}, week ${weekNumber}, group ${groupId}`);
+  try {
+    // Fetch all rankings for this group
+    const groupMembers = await communityGovernanceContributions.methods.getGroupMembers(groupId).call();
+    console.log('Group Members:', groupMembers);
+    
+    console.log('Individual Rankings:');
+    for (const member of groupMembers) {
+      const ranking = await communityGovernanceContributions.methods.getRanking(communityId, weekNumber, groupId, member).call();
+      console.log(`${member}: ${ranking.length > 0 ? ranking.join(', ') : 'No ranking submitted'}`);
+    }
+
+    // Call determineConsensus
+    await communityGovernanceContributions.methods.determineConsensus(communityId, weekNumber, groupId)
+      .send({ from: deployerAccount, gas: 3000000 });
+    
+    // Fetch transient scores
+    const [members, scores] = await communityGovernanceContributions.methods.getTransientScores(communityId, weekNumber, groupId).call();
+    console.log('Transient Scores:');
+    for (let i = 0; i < members.length; i++) {
+      const score = BigInt(scores[i]);
+      const averageRanking = Number(score / BigInt(1000));
+      const consensusTerm = Number(score % BigInt(1000)) / 1000;
+      console.log(`${members[i]}: Average Ranking: ${averageRanking.toFixed(3)}, Consensus Term: ${consensusTerm.toFixed(3)}`);
+    }
+
+    // Fetch and log the final consensus ranking
+    const consensusRanking = await communityGovernanceContributions.methods.getConsensusRanking(communityId, weekNumber, groupId).call();
+    if (consensusRanking && consensusRanking.rankedAddresses && consensusRanking.rankedAddresses.length > 0) {
+      console.log('Final Consensus Ranking:', consensusRanking.rankedAddresses.join(', '));
+    } else {
+      console.log('No consensus ranking available');
+    }
+} catch (e) {
+  console.error('Error:', e.message);
+  console.error('Error stack:', e.stack);
+}
 })();
